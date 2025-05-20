@@ -1,0 +1,319 @@
+```
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jogo da Memória Educacional de TI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: radial-gradient(circle at top left, #0f2027, #203a43, #2c5364);
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    font-weight: 600;
+    font-size: 2.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    color: #00c6ff;
+  }
+
+  header p {
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: #a0d2ff;
+  }
+
+  .scoreboard {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    text-align: center;
+    color: #fff;
+  }
+
+  .scoreboard span {
+    background: #00c6ff;
+    padding: 6px 14px;
+    border-radius: 14px;
+    margin: 0 10px;
+    font-weight: 600;
+    box-shadow: 0 0 10px #00c6ff88;
+  }
+
+  #game-board {
+    width: 360px;
+    max-width: 100vw;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    perspective: 1000px;
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    padding-top: 100%;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  }
+
+  .card.flipped {
+    transform: rotateY(180deg);
+    cursor: default;
+  }
+
+  .card.matched {
+    cursor: default;
+    box-shadow: 0 0 15px 4px #00ffccaa;
+    filter: brightness(1.2);
+  }
+
+  .card-face {
+    position: absolute;
+    border-radius: 12px;
+    inset: 0;
+    backface-visibility: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    user-select: none;
+  }
+
+  .card-front {
+    background: #00c6ff;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transform: rotateY(180deg);
+    overflow-wrap: break-word;
+    box-shadow: inset 0 2px 10px #6ecaffaa;
+  }
+
+  .card-back {
+    background: #1c4966;
+    box-shadow: inset 0 2px 6px #0a273f;
+  }
+
+  .card-back svg {
+    width: 40px;
+    height: 40px;
+    fill: #00c6ff;
+  }
+
+  button#restart-btn {
+    margin-top: 24px;
+    background: #0072ff;
+    border: none;
+    border-radius: 24px;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 12px #004fa1;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  button#restart-btn:hover {
+    background: #00c6ff;
+    box-shadow: 0 8px 20px #00c6ffcc;
+  }
+
+  @media (max-width: 400px) {
+    #game-board {
+      width: 100%;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Jogo da Memória Educacional de TI</h1>
+  <p>Encontre os pares dos termos e logos de Tecnologia da Informação</p>
+</header>
+
+<div class="scoreboard">
+  Tentativas: <span id="attempts">0</span>
+  Pares encontrados: <span id="matches">0</span>/8
+</div>
+
+<div id="game-board" role="grid" aria-label="Tabuleiro do jogo da memória"></div>
+
+<button id="restart-btn" aria-label="Reiniciar o jogo">Reiniciar Jogo</button>
+
+<script>
+(() => {
+  // IT terms and icons pairs
+  const cardsData = [
+    { id: 'html', label: 'HTML', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 452 520"><path d="M41 460 0 0h451l-41 460-185 52"/></svg>' },
+    { id: 'css', label: 'CSS', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 452 520"><path d="M41 460 225 512 409 460 451 0H0l41 460Z"/></svg>' },
+    { id: 'js', label: 'JavaScript', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 630"><path fill="#F7DF1E" d="M0 0h630v630H0z"/><path fill="#000" d="M423 492c17 28 39 48 97 48 58 0 94-27 94-65 0-45-36-61-97-87-43-18-72-41-72-87 0-43 33-75 85-75 37 0 64 13 83 47l-46 30c-10-19-21-26-38-26-17 0-28 11-28 26 0 18 11 25 38 37 52 21 81 44 81 93 0 54-42 84-99 84-56 0-92-27-110-62zM264 519c11 19 20 35 44 35 23 0 37-9 37-44V306h67v196c0 69-41 100-101 100-54 0-86-28-102-63z"/></svg>' },
+    { id: 'python', label: 'Python', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#306998" d="M255 0c-67 0-81 31-81 31v61h114v19H123v-78s16-39 132-33c0 0 65 1 65 65v44H255zM255 512c67 0 81-31 81-31v-61h-114v-19h146v78s-16 39-132 33c0 0-65-1-65-65v-44h73z"/></svg>' },
+    { id: 'linux', label: 'Linux', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><circle cx="256" cy="256" r="256" fill="#f7f7f7"/><path fill="#000" d="M151 214c0 0 59-26 97-14 34 11 46 48 46 48 18 6 12 58-49 58-60 0-92-50-94-66z"/></svg>' },
+    { id: 'server', label: 'Servidor', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="12" fill="#3a6ea5" rx="3"/><rect x="8" y="28" width="48" height="12" fill="#8fbde9" rx="3"/><rect x="8" y="44" width="48" height="12" fill="#3a6ea5" rx="3"/><circle cx="16" cy="18" r="3" fill="#ffcc00"/><circle cx="24" cy="34" r="3" fill="#ffcc00"/><circle cx="32" cy="50" r="3" fill="#ffcc00"/></svg>' },
+    { id: 'cloud', label: 'Nuvem', icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="22" cy="30" r="10" fill="#87ceeb"/><circle cx="34" cy="26" r="14" fill="#b0e0e6"/><circle cx="44" cy="34" r="8" fill="#87ceeb"/></svg>' }
+  ];
+
+  // Duplicate cards for pairs and shuffle
+  let deck = [];
+  function shuffle(array) {
+    for (let i = array.length -1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function createCardElement(cardData) {
+    const card = document.createElement('div');
+    card.classList.add('card');
+    card.setAttribute('data-id', cardData.id);
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Carta ${cardData.label}`);
+    
+    const front = document.createElement('div');
+    front.classList.add('card-face', 'card-front');
+    front.innerHTML = `<div>${cardData.icon}<br>${cardData.label}</div>`;
+
+    const back = document.createElement('div');
+    back.classList.add('card-face', 'card-back');
+    back.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" stroke="#00c6ff" stroke-width="4" fill="none"/></svg>`;
+    
+    card.appendChild(front);
+    card.appendChild(back);
+
+    return card;
+  }
+
+  const gameBoard = document.getElementById('game-board');
+  const attemptsSpan = document.getElementById('attempts');
+  const matchesSpan = document.getElementById('matches');
+  const restartBtn = document.getElementById('restart-btn');
+
+  let firstCard = null;
+  let secondCard = null;
+  let lockBoard = false;
+  let attempts = 0;
+  let matches = 0;
+
+  function resetBoard() {
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+  }
+
+  function flipCard() {
+    if (lockBoard) return;
+    if (this === firstCard) return;
+
+    this.classList.add('flipped');
+
+    if (!firstCard) {
+      firstCard = this;
+      return;
+    }
+
+    secondCard = this;
+    attempts++;
+    attemptsSpan.textContent = attempts;
+
+    checkForMatch();
+  }
+
+  function checkForMatch() {
+    const isMatch = firstCard.dataset.id === secondCard.dataset.id;
+    if (isMatch) {
+      disableCards();
+      matches++;
+      matchesSpan.textContent = matches;
+      if(matches === cardsData.length){
+        setTimeout(() => {
+          alert(`Parabéns! Você encontrou todos os pares em ${attempts} tentativas.`);
+        }, 600);
+      }
+    } else {
+      unflipCards();
+    }
+  }
+
+  function disableCards() {
+    firstCard.classList.add('matched');
+    secondCard.classList.add('matched');
+    firstCard.removeEventListener('click', flipCard);
+    secondCard.removeEventListener('click', flipCard);
+    resetBoard();
+  }
+
+  function unflipCards() {
+    lockBoard = true;
+    setTimeout(() => {
+      firstCard.classList.remove('flipped');
+      secondCard.classList.remove('flipped');
+      resetBoard();
+    }, 1000);
+  }
+
+  function initGame() {
+    attempts = 0;
+    matches = 0;
+    attemptsSpan.textContent = attempts;
+    matchesSpan.textContent = matches;
+
+    // Prepare deck with pairs duplicated
+    deck = [...cardsData, ...cardsData];
+    shuffle(deck);
+
+    gameBoard.innerHTML = '';
+    deck.forEach(cardData => {
+      const card = createCardElement(cardData);
+      card.addEventListener('click', flipCard);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
+      });
+      gameBoard.appendChild(card);
+    });
+  }
+
+  restartBtn.addEventListener('click', () => {
+    initGame();
+  });
+
+  // Start first game
+  initGame();
+})();
+</script>
+
+</body>
+</html>
+```
